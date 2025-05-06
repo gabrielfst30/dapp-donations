@@ -1,8 +1,8 @@
-import { createContext } from "react";
-import { Web3Context } from "./types";
+import { createContext } from "react"; //função do React usada para criar um contexto.
+import { Web3Context } from "./types"; //Tipagem de dados que iremos utilizar baseado no donation.sol
 
 
-//Context que vai englobar a aplicaçao
+//Criando um context e especificando quais funções e valores estarão disponiveis para o provider
 export const Web3ProviderContext = createContext<Web3Context>({
       connectWallet() {},
       disconnectWallet() {},

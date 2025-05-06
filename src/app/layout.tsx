@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Inter, Montserrat } from 'next/font/google'
+import { Inter, Montserrat } from "next/font/google";
 import Header from "@/components/header/page";
+import Web3Provider from "@/contexts/donationProvider/page";
 
 export const metadata: Metadata = {
   title: "Crypto Donations",
@@ -9,14 +10,14 @@ export const metadata: Metadata = {
 };
 
 const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-})
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-montserrat',
-})
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+});
 
 export default function RootLayout({
   children,
@@ -25,9 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html>
-      <body>
-      <Header />
-        {children}
+      <body className={`${inter.variable} ${montserrat.variable}`}>
+        <Web3Provider>
+          <Header />
+          {children}
+        </Web3Provider>
       </body>
     </html>
   );
