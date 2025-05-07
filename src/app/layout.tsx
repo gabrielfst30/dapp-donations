@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html>
-      <body className={`${inter.variable} ${montserrat.variable}`}>
+      <body className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
         <Web3Provider>
           <Header />
           {children}
