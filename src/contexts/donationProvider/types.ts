@@ -24,7 +24,6 @@ export type Web3Context = {
   donations: DonationItemFormat[];
   loadingDonate: boolean;
   loadingDonations: boolean;
-  showConfetti: boolean;
   isConnected: boolean;
   total: string;
 };

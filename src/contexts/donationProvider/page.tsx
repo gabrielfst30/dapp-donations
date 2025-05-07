@@ -4,8 +4,9 @@
 // Armazenar dados de doações (em desenvolvimento),
 // Expor tudo via Context para os filhos.
 
+"use client";
+
 import {
-  createContext,
   useEffect,
   useState,
   useCallback,
@@ -48,17 +49,36 @@ export default function Web3Provider({ children }: Props) {
     }
   }, []);
 
-  //Conectando a nossa wallet
-  const connectWallet = async () => {
+  useEffect(() => {
+    if (provider) {
+      connectWallet();
+    } else {
+      disconnectWallet();
+    }
+  }, [provider]);
+
+  //Conectando a nossa wallet, utilizando o useCallback para re-renderizar apenas quando o provider for alterado
+  const connectWallet = useCallback(async () => {
     try {
       //Solicitando conexão a carteira
-      const accounts = await provider?.send("eth_requestAccounts", []);
+      const accounts = await provider.send("eth_requestAccounts", []);
       if (accounts?.length) {
         //Se estiver conectado seta para true
         setIsConnected(true);
       }
     } catch (error) {
       console.log(error);
+    }
+  }, [provider]);
+  //
+  const disconnectWallet = async () => {
+    try {
+      //Solicitando desconexão da carteira
+      await provider.send("eth_requestAccounts", []);
+      //Se estiver desconectado seta para false
+      setIsConnected(false);
+    } catch (error) {
+      console.log("Erro ao desconectar carteira");
     }
   };
 
@@ -76,14 +96,44 @@ export default function Web3Provider({ children }: Props) {
     setContract(donationContract);
   }, [provider, contractAddress, donationArtifact.abi]); // Adicione dependências que mudam (provider, contractAddress)
 
+  const getDonations = async () => {
+    try {
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const donate = async () => {};
+
   // UseEffect para chamar a função apenas uma vez
   useEffect(() => {
     generateContract();
   }, [generateContract]); // O useEffect chama a função apenas quando 'generateContract' mudar
 
+  //useMemo para evitar re-renderizaçoes desnecessárias do value a cada interação do componente na tela
+  const values = useMemo(() => {
+    return {
+      connectWallet,
+      disconnectWallet,
+      donate,
+      loadingDonations,
+      loadingDonate,
+      donations,
+      isConnected,
+      total,
+    };
+  }, [
+    connectWallet,
+    donations,
+    loadingDonations,
+    isConnected,
+    loadingDonate,
+    total,
+  ]);
+
   return (
     //Englobando o nosso context em todas as paginas para podermos passar os dados necessários
-    <Web3ProviderContext.Provider value={{ connectWallet }}>
+    <Web3ProviderContext.Provider value={values}>
       {children}
     </Web3ProviderContext.Provider>
   );
