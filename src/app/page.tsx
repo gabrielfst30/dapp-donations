@@ -1,19 +1,26 @@
 "use client";
 
+import { useWeb3 } from "@/contexts/donationProvider/web-context";
 import Head from "next/head";
 import Image from "next/image";
 import { useState } from "react";
+import { ToastContainer } from "react-toastify";
 
-const amounts = ["0.05 ETH", "0.02 ETH", "0.01 ETH"];
+const amounts = ["0.05", "0.02", "0.01"];
 
 export default function Page() {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const [donations, setDonations] = useState([]);
+  const { donate, loadingDonate, loadingDonations, donations } = useWeb3(); //chamando nosso context
 
   function handleDonate() {
-    console.log(selectedValue);
-    setDonations([...donations, selectedValue]);
+    if (selectedValue && selectedValue > "0") {
+      try {
+        donate(selectedValue); //enviando doaçao
+      } catch (error) { }
+    }
   }
+
+  console.log(selectedValue);
 
   return (
     <div>
@@ -23,32 +30,31 @@ export default function Page() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
+      <ToastContainer />
+
       <main
-        className="flex flex-row h-full pl-80 pr-80"
-        style={{ height: "calc(100vh - 120px)" }}
+        className="flex flex-col lg:flex-row gap-8 px-4 lg:px-20 py-10"
+        style={{ minHeight: "calc(100vh - 120px)" }}
       >
         {/* Lado Esquerdo */}
-        <section className="flex-1 flex w-1/2 items-center">
-          <div className="w-full max-w-xl h-[500px] flex flex-col justify-start rounded-md">
-            {/* Título alinhado */}
-            <p className="text-2xl mb-4 text-white">
+        <section className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-xl flex flex-col gap-6">
+            <p className="text-2xl text-white">
               Ajude a proteger nossos penguins-imperadores doando em Cripto.
             </p>
 
-            {/* Card de doação */}
             <div className="bg-black/30 backdrop-blur-sm p-6 rounded-xl w-full text-center space-y-4 shadow-lg border border-white/10">
-              <div className="flex justify-start space-x-2">
+              <div className="flex flex-wrap gap-2 justify-start">
                 {amounts.map((amount) => (
                   <button
                     key={amount}
                     onClick={() => setSelectedValue(amount)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                      selectedValue === amount
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedValue === amount
                         ? "bg-blue-600 text-white"
                         : "bg-white/20 text-white hover:bg-white/30"
-                    }`}
+                      }`}
                   >
-                    {amount}
+                    {amount} ETH
                   </button>
                 ))}
               </div>
@@ -64,20 +70,18 @@ export default function Page() {
         </section>
 
         {/* Lado Direito */}
-        <section className="flex-1 flex w-1/2 items-center justify-end">
-          <div className="w-full h-[500px] flex flex-col justify-end rounded-md">
-            {/* Título alinhado */}
-            <p className="text-2xl mb-4 text-white">Últimas cinco doações</p>
+        <section className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-xl flex flex-col gap-4">
+            <p className="text-2xl text-white">Últimas cinco doações</p>
 
-            {/* Lista com scroll */}
-            <ul className="flex-1 overflow-y-auto space-y-2 pr-2">
-              {donations.map((_, itens) => (
+            <ul className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+              {donations.map((_, index) => (
                 <li
-                  key={itens}
+                  key={index}
                   className="flex justify-between bg-gray-100 p-4 rounded-lg shadow-md"
                 >
-                  <span className="text-black">Address</span>
-                  <span className="text-black">{donations[itens]}</span>
+                  <span className="text-black">{donations[index].donor}</span>
+                  <span className="text-black">{donations[index].value}</span>
                 </li>
               ))}
             </ul>
@@ -86,4 +90,5 @@ export default function Page() {
       </main>
     </div>
   );
+
 }
