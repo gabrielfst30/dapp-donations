@@ -16,15 +16,14 @@ import {
   ProviderProps,
 } from "react";
 
-import { ToastContainer, toast } from "react-toastify";
+import { Bounce, ToastContainer, toast } from "react-toastify";
 import { ethers, BigNumberish } from "ethers";
-import { DonationItemFormat, Props } from "./types";
+import { DonationItem, DonationItemFormat, Props } from "./types";
 import { Web3ProviderContext } from "./web-context";
 import { BrowserProvider } from "ethers";
 
 //importando o json do contrato donation.sol para pegarmos o ABI (Interface Web)
 import donationArtifact from "../../artifacts/contracts/Donation.sol/Donation.json";
-
 //endereço do nosso contrato
 const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
@@ -57,6 +56,22 @@ export default function Web3Provider({ children }: Props) {
     }
   }, [provider]);
 
+  const errorMsg = (error: any, title = "Erro na transação") => {
+    const description = error?.reason ? error.reason : "Erro. tente novamente.";
+
+    toast.error("Erro. tente novamente.", {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+      transition: Bounce,
+    });
+  };
+
   //Conectando a nossa wallet, utilizando o useCallback para re-renderizar apenas quando o provider for alterado
   const connectWallet = useCallback(async () => {
     try {
@@ -67,7 +82,7 @@ export default function Web3Provider({ children }: Props) {
         setIsConnected(true);
       }
     } catch (error) {
-      console.log(error);
+      errorMsg(error);
     }
   }, [provider]);
   //
@@ -78,7 +93,7 @@ export default function Web3Provider({ children }: Props) {
       //Se estiver desconectado seta para false
       setIsConnected(false);
     } catch (error) {
-      console.log("Erro ao desconectar carteira");
+      errorMsg(error);
     }
   };
 
@@ -96,19 +111,95 @@ export default function Web3Provider({ children }: Props) {
     setContract(donationContract);
   }, [provider, contractAddress, donationArtifact.abi]); // Adicione dependências que mudam (provider, contractAddress)
 
-  const getDonations = async () => {
+  //pegando a lista de doaçoes
+  //evitando loop infinito utilizando callback
+  const getDonations = useCallback(async () => {
     try {
-    } catch (error) {
-      console.log(error);
-    }
-  };
+      setLoadingDonations(true);
+      const data = (await contract?.getDonations()) as DonationItem[]; //data chama as donations e retorna tipado com DonationItem
+      const totalValue = (await contract?.total()) as BigNumberish; //chama o totalrecebe tipagem BigNumberish
 
-  const donate = async () => {};
+      //formatando os dados recebidos de getDonations
+      const dataFormat = data.map((item) => ({
+        id: item.id.toString(),
+        donor: item.donor,
+        value: ethers.formatEther(item.value),
+      }));
+
+      //formatando o valor em ether e convertendo para string
+      setTotal(ethers.formatEther(totalValue.toString()));
+
+      //pegando as 5 ultimas doaçoes
+      setDonations(dataFormat.slice(-5));
+    } catch (error) {
+      errorMsg(error);
+    } finally {
+      setLoadingDonations(false);
+    }
+  }, [contract]);
+
+  const donate = useCallback(
+    async (amount: string) => {
+      //valor da doação que vamos receber
+      try {
+        setLoadingDonate(true);
+        //formatando value para ether
+        const value = ethers.parseEther(amount);
+        //enviando donate
+        const donatePending = await contract?.donate({
+          value,
+        });
+
+        toast.info("Transação pendente", {
+          position: "top-center",
+          autoClose: 7000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          transition: Bounce,
+        });
+
+        //aguardando transação
+        await donatePending.wait();
+
+        toast.success("Transação concluída!", {
+          position: "top-center",
+          autoClose: loadingDonate ? 100000 : 0,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          transition: Bounce,
+        });
+
+        //atualizando a lista de donations
+        getDonations();
+      } catch (error) {
+        errorMsg(error);
+      } finally {
+        setLoadingDonate(false);
+      }
+    },
+    [getDonations, contract, toast]
+  );
 
   // UseEffect para chamar a função apenas uma vez
+  // gerando contract donation
   useEffect(() => {
     generateContract();
   }, [generateContract]); // O useEffect chama a função apenas quando 'generateContract' mudar
+
+  //chamando a funçao getDonations
+  useEffect(() => {
+    if (contract) {
+      getDonations();
+    }
+  }, [contract]);
 
   //useMemo para evitar re-renderizaçoes desnecessárias do value a cada interação do componente na tela
   const values = useMemo(() => {
