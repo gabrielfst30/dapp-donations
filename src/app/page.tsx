@@ -20,7 +20,7 @@ export default function Page() {
     }
   }
 
-  console.log(selectedValue);
+  // console.log(selectedValue);
 
   return (
     <div>
@@ -54,7 +54,7 @@ export default function Page() {
                         : "bg-white/20 text-white hover:bg-white/30"
                       }`}
                   >
-                    {amount} ETH
+                    {amount} MON
                   </button>
                 ))}
               </div>
