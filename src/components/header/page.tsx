@@ -5,7 +5,7 @@ import Image from "next/image";
 export default function Header() {
   const { connectWallet, isConnected } = useWeb3();
 
-  console.log(isConnected);
+  // console.log(isConnected);
 
   return (
     <header className="flex flex-col sm:flex-row w-full py-6 px-4 lg:px-20 bg-transparent items-center justify-between gap-4">

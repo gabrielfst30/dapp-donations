@@ -25,7 +25,7 @@ import { BrowserProvider } from "ethers";
 //importando o json do contrato donation.sol para pegarmos o ABI (Interface Web)
 import donationArtifact from "../../artifacts/contracts/Donation.sol/Donation.json";
 //endereço do nosso contrato
-const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const contractAddress = "0x40363F328B639b12BE269246b7C30230e1fe3dd0";
 
 //Cria um componente provider que consome o context para passar os valores para páginas ou componentes filhos via Context API.
 //Forcedor do context
@@ -88,8 +88,6 @@ export default function Web3Provider({ children }: Props) {
   //
   const disconnectWallet = async () => {
     try {
-      //Solicitando desconexão da carteira
-      await provider.send("eth_requestAccounts", []);
       //Se estiver desconectado seta para false
       setIsConnected(false);
     } catch (error) {
@@ -97,8 +95,9 @@ export default function Web3Provider({ children }: Props) {
     }
   };
 
-  // Função gerada com useCallback para evitar recriação desnecessária (espera-se três parâmetros nessa função)
+  // Gerando nosso contrato inteligente
   const generateContract = useCallback(async () => {
+    // Função gerada com useCallback para evitar recriação desnecessária (espera-se três parâmetros nessa função)
     // 1. Obtém o "signer" conectado — a conta que vai assinar as transações (ex: do MetaMask)
     const signerConnected = await provider?.getSigner();
     // 2. Cria uma instância do contrato inteligente
@@ -111,9 +110,10 @@ export default function Web3Provider({ children }: Props) {
     setContract(donationContract);
   }, [provider, contractAddress, donationArtifact.abi]); // Adicione dependências que mudam (provider, contractAddress)
 
-  //pegando a lista de doaçoes
+  //Pegando a lista de doaçoes
   //evitando loop infinito utilizando callback
   const getDonations = useCallback(async () => {
+    if (!contract) return;
     try {
       setLoadingDonations(true);
       const data = (await contract?.getDonations()) as DonationItem[]; //data chama as donations e retorna tipado com DonationItem
