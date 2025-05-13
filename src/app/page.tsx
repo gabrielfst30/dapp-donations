@@ -10,8 +10,9 @@ const amounts = ["0.05", "0.02", "0.01"];
 
 export default function Page() {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const { donate, loadingDonate, loadingDonations, donations } = useWeb3(); //chamando nosso context
+  const { donate, loadingDonate, loadingDonations, donations } = useWeb3(); //Chamando nosso context
 
+  //Enviando Donation
   function handleDonate() {
     if (selectedValue && selectedValue > "0") {
       try {
@@ -19,8 +20,6 @@ export default function Page() {
       } catch (error) { }
     }
   }
-
-  // console.log(selectedValue);
 
   return (
     <div>
