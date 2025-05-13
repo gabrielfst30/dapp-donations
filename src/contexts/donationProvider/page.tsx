@@ -1,9 +1,3 @@
-// Esse componente é a base de um provedor Web3 em React, com objetivo de:
-// Detectar MetaMask,
-// Conectar a carteira do usuário,
-// Armazenar dados de doações (em desenvolvimento),
-// Expor tudo via Context para os filhos.
-
 "use client";
 
 import {
@@ -12,42 +6,37 @@ import {
   useCallback,
   ReactNode,
   useMemo,
-  useContext,
-  ProviderProps,
 } from "react";
-
-import { Bounce, ToastContainer, toast } from "react-toastify";
+import { Bounce, toast } from "react-toastify";
 import { ethers, BigNumberish } from "ethers";
+import { BrowserProvider } from "ethers";
 import { DonationItem, DonationItemFormat, Props } from "./types";
 import { Web3ProviderContext } from "./web-context";
-import { BrowserProvider } from "ethers";
 
-//importando o json do contrato donation.sol para pegarmos o ABI (Interface Web)
 import donationArtifact from "../../artifacts/contracts/Donation.sol/Donation.json";
-//endereço do nosso contrato
+
+// Endereço do contrato implantado na Monad
 const contractAddress = "0x40363F328B639b12BE269246b7C30230e1fe3dd0";
 
-//Cria um componente provider que consome o context para passar os valores para páginas ou componentes filhos via Context API.
-//Forcedor do context
 export default function Web3Provider({ children }: Props) {
-  const [provider, setProvider] = useState<BrowserProvider>(); //instância do provedor de conexão com MetaMask.
-  const [contract, setContract] = useState<ethers.Contract>(); //instância do contrato inteligente.
-  const [donations, setDonations] = useState<DonationItemFormat[]>([]); //array com as doações.
-  const [isConnected, setIsConnected] = useState(false); //se a carteira está conectada.
-  const [total, setTotal] = useState("0"); //valor total doado.
-  const [loadingDonate, setLoadingDonate] = useState(false); //status de carregamento de ações.
-  const [loadingDonations, setLoadingDonations] = useState(false); //status de carregamento de ações.
+  // === 1. ESTADOS GERAIS ===
+  const [provider, setProvider] = useState<BrowserProvider>();
+  const [contract, setContract] = useState<ethers.Contract>();
+  const [donations, setDonations] = useState<DonationItemFormat[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [total, setTotal] = useState("0");
+  const [loadingDonate, setLoadingDonate] = useState(false);
+  const [loadingDonations, setLoadingDonations] = useState(false);
 
-  //Validando se o metamask esta instalado
-  //gerando o provider pegando a api da metamask
+  // === 2. CRIA PROVIDER AO DETECTAR METAMASK ===
   useEffect(() => {
-    //Se tiver instalado cria um novo provider e salva no estado
     if (window.ethereum) {
       const newProvider = new BrowserProvider(window.ethereum);
       setProvider(newProvider);
     }
   }, []);
 
+  // === 3. CONECTA WALLET SE PROVIDER EXISTIR ===
   useEffect(() => {
     if (provider) {
       connectWallet();
@@ -56,128 +45,100 @@ export default function Web3Provider({ children }: Props) {
     }
   }, [provider]);
 
+  // === 4. EXIBE TOAST DE ERRO GENÉRICO ===
   const errorMsg = (error: any, title = "Erro na transação") => {
-    const description = error?.reason ? error.reason : "Erro. tente novamente.";
+    const description = error?.reason || "Erro. tente novamente.";
 
-    toast.error("Erro. tente novamente.", {
+    toast.error(description, {
       position: "top-center",
       autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
       theme: "dark",
       transition: Bounce,
     });
   };
 
-  //Conectando a nossa wallet, utilizando o useCallback para re-renderizar apenas quando o provider for alterado
+  // === 5. CONECTA WALLET PELO METAMASK ===
   const connectWallet = useCallback(async () => {
     try {
-      //Solicitando conexão a carteira
-      const accounts = await provider.send("eth_requestAccounts", []);
-      if (accounts?.length) {
-        //Se estiver conectado seta para true
-        setIsConnected(true);
-      }
+      const accounts = await provider?.send("eth_requestAccounts", []);
+      if (accounts?.length) setIsConnected(true);
     } catch (error) {
-      errorMsg(error);
+      if (error?.code !== 4001) errorMsg(error); // ignora cancelamentos
     }
   }, [provider]);
-  //
+
+  // === 6. DESCONECTA (SIMBOLICAMENTE) A WALLET ===
   const disconnectWallet = async () => {
-    try {
-      //Se estiver desconectado seta para false
-      setIsConnected(false);
-    } catch (error) {
-      errorMsg(error);
-    }
+    setIsConnected(false); // reset apenas local
   };
 
-  // Gerando nosso contrato inteligente
+  // === 7. INSTANCIA O CONTRATO SE A WALLET ESTIVER CONECTADA ===
   const generateContract = useCallback(async () => {
-    // Função gerada com useCallback para evitar recriação desnecessária (espera-se três parâmetros nessa função)
-    // 1. Obtém o "signer" conectado — a conta que vai assinar as transações (ex: do MetaMask)
     const signerConnected = await provider?.getSigner();
-    // 2. Cria uma instância do contrato inteligente
-    const donationContract = new ethers.Contract(
-      contractAddress, // Endereço do contrato
-      donationArtifact.abi, // ABI (interface do contrato)
-      signerConnected // Signer: quem interage com o contrato
-    );
-    // 3. Armazena esse contrato em um estado para usar depois
-    setContract(donationContract);
-  }, [provider, contractAddress, donationArtifact.abi]); // Adicione dependências que mudam (provider, contractAddress)
+    if (!signerConnected) return;
 
-  //Pegando a lista de doaçoes
-  //evitando loop infinito utilizando callback
+    const donationContract = new ethers.Contract(
+      contractAddress,
+      donationArtifact.abi,
+      signerConnected
+    );
+
+    setContract(donationContract);
+  }, [provider]);
+
+  // === 8. BUSCA DOAÇÕES E VALOR TOTAL ===
   const getDonations = useCallback(async () => {
     if (!contract) return;
+
     try {
       setLoadingDonations(true);
-      const data = (await contract?.getDonations()) as DonationItem[]; //data chama as donations e retorna tipado com DonationItem
-      const totalValue = (await contract?.total()) as BigNumberish; //chama o totalrecebe tipagem BigNumberish
 
-      //formatando os dados recebidos de getDonations
+      const [data, totalValue] = await Promise.all([
+        contract.getDonations(),
+        contract.total(),
+      ]);
+
       const dataFormat = data.map((item) => ({
         id: item.id.toString(),
         donor: item.donor,
         value: ethers.formatEther(item.value),
       }));
 
-      //formatando o valor em ether e convertendo para string
       setTotal(ethers.formatEther(totalValue.toString()));
-
-      //pegando as 5 ultimas doaçoes
       setDonations(dataFormat.slice(-5));
-    } catch (error) {
-      errorMsg(error);
+    } catch (error: any) {
+      console.error("Erro ao buscar doações:", error);
+      if (error.reason || error.code) errorMsg(error);
     } finally {
       setLoadingDonations(false);
     }
   }, [contract]);
 
+  // === 9. ENVIA UMA DOAÇÃO PARA O CONTRATO ===
   const donate = useCallback(
     async (amount: string) => {
-      //valor da doação que vamos receber
       try {
         setLoadingDonate(true);
-        //formatando value para ether
+
         const value = ethers.parseEther(amount);
-        //enviando donate
-        const donatePending = await contract?.donate({
-          value,
-        });
+        const tx = await contract?.donate({ value });
 
         toast.info("Transação pendente", {
           position: "top-center",
           autoClose: 7000,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
           theme: "dark",
           transition: Bounce,
         });
 
-        //aguardando transação
-        await donatePending.wait();
+        await tx.wait();
 
         toast.success("Transação concluída!", {
           position: "top-center",
-          autoClose: loadingDonate ? 100000 : 0,
-          hideProgressBar: false,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+          autoClose: 5000,
           theme: "dark",
           transition: Bounce,
         });
 
-        //atualizando a lista de donations
         getDonations();
       } catch (error) {
         errorMsg(error);
@@ -185,23 +146,20 @@ export default function Web3Provider({ children }: Props) {
         setLoadingDonate(false);
       }
     },
-    [getDonations, contract, toast]
+    [contract, getDonations]
   );
 
-  // UseEffect para chamar a função apenas uma vez
-  // gerando contract donation
+  // === 10. GERAR CONTRATO QUANDO O PROVIDER ESTIVER PRONTO ===
   useEffect(() => {
     generateContract();
-  }, [generateContract]); // O useEffect chama a função apenas quando 'generateContract' mudar
+  }, [generateContract]);
 
-  //chamando a funçao getDonations
+  // === 11. BUSCAR DOAÇÕES APÓS O CONTRATO SER GERADO ===
   useEffect(() => {
-    if (contract) {
-      getDonations();
-    }
+    if (contract) getDonations();
   }, [contract]);
 
-  //useMemo para evitar re-renderizaçoes desnecessárias do value a cada interação do componente na tela
+  // === 12. MEMORIZA OS VALORES PARA O CONTEXTO ===
   const values = useMemo(() => {
     return {
       connectWallet,
@@ -215,15 +173,17 @@ export default function Web3Provider({ children }: Props) {
     };
   }, [
     connectWallet,
-    donations,
+    disconnectWallet,
+    donate,
     loadingDonations,
-    isConnected,
     loadingDonate,
+    donations,
+    isConnected,
     total,
   ]);
 
+  // === 13. FORNECE O CONTEXTO AOS COMPONENTES FILHOS ===
   return (
-    //Englobando o nosso context em todas as paginas para podermos passar os dados necessários
     <Web3ProviderContext.Provider value={values}>
       {children}
     </Web3ProviderContext.Provider>
