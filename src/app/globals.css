@@ -25,6 +25,10 @@ body {
   font-family: Inter;
 }
 
+span {
+  color: #7151D5
+}
+
 h1 {
   font-family: Montserrat;
 }
