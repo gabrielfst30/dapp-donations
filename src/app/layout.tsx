@@ -5,7 +5,7 @@ import Header from "@/components/header/page";
 import Web3Provider from "@/contexts/donationProvider/page";
 
 export const metadata: Metadata = {
-  title: "Crypto Donations",
+  title: "Pinguin Donation",
   description: "Doações de criptomoedas",
 };
 

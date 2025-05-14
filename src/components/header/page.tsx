@@ -13,7 +13,7 @@ export default function Header() {
       <div className="flex items-center gap-2">
         {/* Title */}
         <h1 className="text-3xl sm:text-4xl font-bold text-white">
-          Penguin Donation
+          Pinguin Donation
         </h1>
 
         {/* Logo */}

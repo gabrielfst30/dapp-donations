@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { ToastContainer } from "react-toastify";
 
-const amounts = ["0.05", "0.02", "0.01"];
+const amounts = ["0.1","0.05", "0.01"];
 
 export default function Page() {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export default function Page() {
   return (
     <div>
       <Head>
-        <title>Penguin Donation</title>
+        <title>Pinguin Donation</title>
         <meta name="description" content="" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -39,7 +39,7 @@ export default function Page() {
         <section className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-xl flex flex-col gap-6">
             <p className="text-2xl text-white">
-              Ajude a proteger nossos penguins-imperadores doando em Cripto.
+              Ajude a proteger nossos pinguins-imperadores doando em cripto.
             </p>
 
             <div className="bg-black/30 backdrop-blur-sm p-6 rounded-xl w-full text-center space-y-4 shadow-lg border border-white/10">
@@ -62,7 +62,7 @@ export default function Page() {
                 className="w-full h-10 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-1xl cursor-pointer"
                 onClick={handleDonate}
               >
-                Donate Now
+                Enviar doação
               </button>
             </div>
           </div>
@@ -74,13 +74,13 @@ export default function Page() {
             <p className="text-2xl text-white">Últimas cinco doações</p>
 
             <ul className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
-              {donations.map((_, index) => (
+              {donations.slice().reverse().map((donation, index) => (
                 <li
                   key={index}
                   className="flex justify-between bg-gray-100 p-4 rounded-lg shadow-md"
                 >
-                  <span className="text-black">{donations[index].donor}</span>
-                  <span className="text-black">{donations[index].value}</span>
+                  <span className="text-black">{donation.donor}</span>
+                  <span className="font-bold">{donation.value} MON</span>
                 </li>
               ))}
             </ul>
